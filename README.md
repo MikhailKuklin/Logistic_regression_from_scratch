@@ -6,5 +6,7 @@ This repo contains notebook for
 * analysis of the results
 
 Dataset: Palmer Penguin Dataset
+
 Library: scikit-learn
+
 Method: logistic regression
