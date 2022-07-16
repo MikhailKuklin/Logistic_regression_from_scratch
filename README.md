@@ -1,5 +1,5 @@
 # Implementation of logistics regression from scratch
-A notebook with implementation of logistic regression in a docker environment. Notebook includes:
+A notebook with implementation of logistic regression for binary classification problem in a docker environment. Notebook includes:
 
 * data preprocessing
 * development of the model (logistic regression)
