@@ -2,9 +2,14 @@
 A notebook with implementation of logistic regression in a docker environment. Notebook includes:
 
 * data preprocessing
-* development of the model
-* tuning of the model
-* evaluation of model performance
+* development of the model (logistic regression)
+* tuning of the model (GridSearchCV)
+* evaluation of model performance (confusion matrix, ROC)
+
+**Dataset:** Palmer Penguin
+
+**Python library:** scikit-learn
+
 
 # How to run the notebook?
 
