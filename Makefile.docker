@@ -1,0 +1,86 @@
+IMAGE_NAME := jupyter-lab-dev
+IMAGE_STAMP := $(IMAGE_NAME).stamp
+LAB_IMAGE_NAME := jupyter-lab
+LAB_IMAGE_STAMP := $(LAB_IMAGE_NAME).stamp
+
+# Runtime configuration
+LAB_PORT := 8888
+
+# Enable caching when building the dev image with
+# make CACHE="" ...
+# CACHE := --no-cache
+
+# The workdir in the image
+WORKDIR := /app
+
+# Filter tests to run
+# make TESTS="pattern" test
+TESTS :=
+
+PYTEST_ARGS := -p no:cacheprovider -k "$(TESTS)" $(WORKDIR)/tests/
+
+# Enable BuildKit for docker build (necessary for `RUN --mount...`).
+# See: https://docs.docker.com/develop/develop-images/build_enhancements/#to-enable-buildkit-builds
+DOCKER_BUILDKIT := 1
+export DOCKER_BUILDKIT
+
+# Define common platform to be used so M1 Macs don't have any issues
+# See: https://hublog.hubmed.org/archives/002027
+DOCKER_DEFAULT_PLATFORM := linux/amd64
+export DOCKER_DEFAULT_PLATFORM
+
+.PHONY: image test docs shell clean format lock
+
+help:
+	@echo "lab    	Build and lab image and start dockerized Jupyter environment."
+
+image: $(IMAGE_STAMP)
+
+$(IMAGE_STAMP): docker/dev.dockerfile pyproject.toml poetry.lock
+	docker build --rm --tag $(IMAGE_NAME) \
+	    $(CACHE) \
+	    --ssh default \
+	    --file docker/dev.dockerfile \
+	    .
+	@touch $@
+
+lab-image: $(LAB_IMAGE_STAMP)
+
+$(LAB_IMAGE_STAMP): docker/lab.dockerfile docker/personal-setup.sh pyproject.toml poetry.lock
+	docker build --rm --tag $(LAB_IMAGE_NAME) \
+	    $(CACHE) \
+	    --ssh default \
+	    --file docker/lab.dockerfile \
+	    .
+	@touch $@
+
+docker/personal-setup.sh:
+	@# Create if it does not exist.
+	@touch $@
+
+# Check that poetry is available
+poetry:
+	@command -v $@ >/dev/null || { echo "Error: $@ not installed!"; false; }
+
+lab: lab-image
+	mkdir -p notebooks
+	mkdir -p data
+	docker run --rm -ti \
+	    --name $(LAB_IMAGE_NAME)-$@ \
+	    --volume "$(PWD):/app" \
+	    --volume "$(PWD)/notebooks:/home/jovyan/notebooks" \
+	    --publish "$(LAB_PORT):8888" \
+	    --detach \
+	    --env "NB_UID=$(shell id -u)" \
+	    --env "NB_GID=$(shell id -g)" \
+            --env "CHOWN_HOME=yes" \
+	    --env "CHOWN_HOME_OPTS=-R" \
+	    --workdir $(WORKDIR) \
+	    $(LAB_IMAGE_NAME) || \
+	    { \
+	      echo "Starting Jupyter Lab failed! Is port $(LAB_PORT) already used?"; \
+	      echo "You can change the port like so: make -f Makefile.docker LAB_PORT=8889 lab"; \
+	      false; \
+	    }
+	@echo "Jupyter Lab started: Open it at http://localhost:$(LAB_PORT) (password: logreg)"
+	@echo "Use 'docker ps' and 'docker stop' to manage running containers."
