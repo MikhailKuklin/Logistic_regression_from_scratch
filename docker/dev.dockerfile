@@ -22,7 +22,7 @@ env POETRY_VIRTUALENVS_CREATE=false
 
 # 2. Install project dependencies
 
-# Install non-conda requirements e.g. dain common library from private github.
+# Install non-conda requirements 
 COPY pyproject.toml pyproject.toml
 COPY poetry.lock poetry.lock
 RUN --mount=type=ssh,mode=0666 : \
